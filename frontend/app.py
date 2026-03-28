@@ -1,5 +1,6 @@
 import streamlit as st
 import anthropic
+import streamlit.components.v1 as components
 import os
 import json
 
@@ -119,6 +120,8 @@ div[data-testid="stButton"] button:hover {
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
     padding: 14px 24px;
+    display: flex;
+    align-items: center;
 }
 
 .dot { width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:4px; }
@@ -153,25 +156,6 @@ div[data-testid="stButton"] button:hover {
     text-transform: uppercase !important;
     margin-bottom: 10px !important;
     display: block;
-}
-
-.tip-box {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 12px;
-    padding: 16px 20px;
-    font-size: 13px;
-    color: #166534;
-    margin-top: 20px;
-    line-height: 1.65;
-}
-
-.copy-hint {
-    text-align: center;
-    color: #94a3b8;
-    font-size: 12px;
-    margin-top: 10px;
-    font-family: 'DM Mono', monospace;
 }
 
 .footer {
@@ -257,28 +241,45 @@ Respond ONLY in this JSON format (no markdown, no backticks):
 
                 subject = parsed.get("subject", "")
                 body = parsed.get("body", "")
-                
-
-
-
                 full_email = f"Subject: {subject}\n\n{body}"
-                st.markdown(f"""
-                    <div class="result-wrapper">
-                    <div class="result-header">
-                    <span class="dot dot-red"></span>
-                    <span class="dot dot-yellow"></span>
-                    <span class="dot dot-green"></span>
-                     <button onclick="navigator.clipboard.writeText(`{full_email}`).then(() => {{ this.innerText = '✓ Copied!'; setTimeout(() => this.innerText = 'Copy', 2000) }})"
-                       style="margin-left:auto; display:block; background:#0f172a; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; letter-spacing:0.03em;">
-                       Copy
-                    </button>
-                 </div>
-             <div class="subject-line">Subject: <span>{subject}</span></div>
-            <div class="email-body">{body}</div>
-            </div>
-       """, unsafe_allow_html=True)
+                escaped = full_email.replace("\\", "\\\\").replace("`", "'").replace("\n", "\\n")
 
-               
+                st.markdown("<br/>", unsafe_allow_html=True)
+                st.markdown('<span class="section-label">✦ Your Cold Email</span>', unsafe_allow_html=True)
+                st.markdown(f"""
+<div class="result-wrapper">
+    <div class="result-header">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+    </div>
+    <div class="subject-line">Subject: <span>{subject}</span></div>
+    <div class="email-body">{body}</div>
+</div>
+""", unsafe_allow_html=True)
+
+                components.html(f"""
+<div style="text-align:right; margin-top:8px;">
+    <button id="copyBtn" onclick="
+        navigator.clipboard.writeText(`{escaped}`).then(() => {{
+            document.getElementById('copyBtn').innerHTML = '<svg width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%2316a34a\\' stroke-width=\\'2.5\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Copied!';
+            document.getElementById('copyBtn').style.color = '#16a34a';
+            document.getElementById('copyBtn').style.borderColor = '#16a34a';
+            setTimeout(() => {{
+                document.getElementById('copyBtn').innerHTML = '<svg width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'9\\' y=\\'9\\' width=\\'13\\' height=\\'13\\' rx=\\'2\\'/><path d=\\'M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1\\'/></svg> Copy email';
+                document.getElementById('copyBtn').style.color = '#475569';
+                document.getElementById('copyBtn').style.borderColor = '#e2e8f0';
+            }}, 2000);
+        }})
+    " style="display:inline-flex; align-items:center; gap:6px; background:white; border:1.5px solid #e2e8f0; border-radius:8px; padding:7px 14px; font-size:13px; color:#475569; cursor:pointer; font-family:Inter,sans-serif; font-weight:500;">
+        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
+            <rect x='9' y='9' width='13' height='13' rx='2'/>
+            <path d='M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1'/>
+        </svg>
+        Copy email
+    </button>
+</div>
+""", height=50)
 
             except json.JSONDecodeError:
                 st.error("Failed to parse AI response. Please try again.")
