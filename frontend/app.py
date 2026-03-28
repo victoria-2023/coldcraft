@@ -273,14 +273,7 @@ Respond ONLY in this JSON format (no markdown, no backticks):
                 <p class="copy-hint">Select the text above to copy</p>
                 """, unsafe_allow_html=True)
 
-                st.markdown("""
-                <div class="tip-box">
-                    <b>💡 LinkedIn tip:</b> Screenshot this app and post it with a caption like
-                    <em>"Built an AI cold email generator using Streamlit + Claude API."</em>
-                    Tag your stack — founders and CTOs are watching.
-                </div>
-                """, unsafe_allow_html=True)
-
+               
             except json.JSONDecodeError:
                 st.error("Failed to parse AI response. Please try again.")
             except anthropic.AuthenticationError:
