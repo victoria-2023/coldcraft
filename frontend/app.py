@@ -262,23 +262,21 @@ Respond ONLY in this JSON format (no markdown, no backticks):
 
 
                 full_email = f"Subject: {subject}\n\n{body}"
-                st.markdown("<br/>", unsafe_allow_html=True)
-                st.markdown('<span class="section-label">✦ Your Cold Email</span>', unsafe_allow_html=True)
                 st.markdown(f"""
-                <div class="result-wrapper">
+                    <div class="result-wrapper">
                     <div class="result-header">
-                        <span class="dot dot-red"></span>
-                        <span class="dot dot-yellow"></span>
-                        <span class="dot dot-green"></span>
-                         <button onclick="navigator.clipboard.writeText(`{full_email}`).then(() => {{ this.innerText = '✓ Copied!'; setTimeout(() => this.innerText = 'Copy', 2000) }})"
-                            style="margin-left:auto; display:block; background:#0f172a; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; letter-spacing:0.03em;">
-                            Copy
-                         </button>
-                    </div>
-                    <div class="subject-line">Subject: <span>{subject}</span></div>
-                    <div class="email-body">{body}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                    <span class="dot dot-red"></span>
+                    <span class="dot dot-yellow"></span>
+                    <span class="dot dot-green"></span>
+                     <button onclick="navigator.clipboard.writeText(`{full_email}`).then(() => {{ this.innerText = '✓ Copied!'; setTimeout(() => this.innerText = 'Copy', 2000) }})"
+                       style="margin-left:auto; display:block; background:#0f172a; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; letter-spacing:0.03em;">
+                       Copy
+                    </button>
+                 </div>
+             <div class="subject-line">Subject: <span>{subject}</span></div>
+            <div class="email-body">{body}</div>
+            </div>
+       """, unsafe_allow_html=True)
 
                
 
