@@ -1,6 +1,7 @@
 import streamlit as st
-import requests
+import anthropic
 import os
+import json
 
 st.set_page_config(
     page_title="ColdCraft — AI Cold Email Generator",
@@ -100,12 +101,9 @@ div[data-testid="stButton"] button {
     width: 100% !important;
     letter-spacing: 0.01em !important;
     box-shadow: 0 4px 12px rgba(15,23,42,0.15) !important;
-    transition: all 0.2s !important;
 }
 div[data-testid="stButton"] button:hover {
     background-color: #1e293b !important;
-    box-shadow: 0 6px 16px rgba(15,23,42,0.2) !important;
-    transform: translateY(-1px) !important;
 }
 
 .result-wrapper {
@@ -121,12 +119,9 @@ div[data-testid="stButton"] button:hover {
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
     padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
 }
 
-.dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
+.dot { width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:4px; }
 .dot-red { background:#ff5f57; }
 .dot-yellow { background:#febc2e; }
 .dot-green { background:#28c840; }
@@ -148,7 +143,6 @@ div[data-testid="stButton"] button:hover {
     color: #1e293b;
     white-space: pre-wrap;
     background: #ffffff;
-    font-weight: 400;
 }
 
 .section-label {
@@ -171,7 +165,6 @@ div[data-testid="stButton"] button:hover {
     margin-top: 20px;
     line-height: 1.65;
 }
-.tip-box b { font-weight: 600; }
 
 .copy-hint {
     text-align: center;
@@ -215,31 +208,55 @@ st.markdown("<br/>", unsafe_allow_html=True)
 generate = st.button("⚡ Generate Cold Email")
 
 # ── Generation ──────────────────────────────────────────────────────────────────
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
-
 if generate:
     if not sender_name or not recipient or not problem:
         st.warning("Please fill in your name, recipient, and the problem you solve.")
     else:
         with st.spinner("Crafting your email..."):
             try:
-                response = requests.post(
-                    f"{BACKEND_URL}/generate-email",
-                    json={
-                        "sender_name": sender_name,
-                        "sender_role": sender_role,
-                        "recipient": recipient,
-                        "problem": problem,
-                        "credential": credential,
-                        "tone": tone,
-                    },
-                    timeout=30,
-                )
-                response.raise_for_status()
-                data = response.json()
+                api_key = st.secrets.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+                if not api_key:
+                    st.error("API key not found. Add ANTHROPIC_API_KEY to your Streamlit secrets.")
+                    st.stop()
 
-                subject = data.get("subject", "")
-                body = data.get("body", "")
+                client = anthropic.Anthropic(api_key=api_key)
+
+                prompt = f"""You are an expert cold email copywriter. Write a cold email with the following details:
+
+Sender: {sender_name} ({sender_role or 'Freelancer/Developer'})
+Recipient: {recipient}
+Problem the sender solves for them: {problem}
+Sender's best credential/proof: {credential or 'Relevant project experience'}
+Tone: {tone}
+
+Write a cold email that:
+- Has a compelling, specific subject line (not generic)
+- Opens with a hook that shows you understand their world
+- Clearly states the value proposition in 1-2 sentences
+- Mentions the credential naturally as social proof
+- Has a soft, low-friction CTA (e.g. "open to a 15-min chat?")
+- Is under 150 words total (concise wins)
+- Feels human, not AI-generated
+- Always sign off with "Best regards," not "Best,"
+
+Respond ONLY in this JSON format (no markdown, no backticks):
+{{
+  "subject": "subject line here",
+  "body": "full email body here with proper line breaks using \\n"
+}}"""
+
+                message = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+
+                raw = message.content[0].text.strip()
+                clean = raw.replace("```json", "").replace("```", "").strip()
+                parsed = json.loads(clean)
+
+                subject = parsed.get("subject", "")
+                body = parsed.get("body", "")
 
                 st.markdown("<br/>", unsafe_allow_html=True)
                 st.markdown('<span class="section-label">✦ Your Cold Email</span>', unsafe_allow_html=True)
@@ -256,16 +273,18 @@ if generate:
                 <p class="copy-hint">Select the text above to copy</p>
                 """, unsafe_allow_html=True)
 
-                st.markdown(f"""
+                st.markdown("""
                 <div class="tip-box">
                     <b>💡 LinkedIn tip:</b> Screenshot this app and post it with a caption like
-                    <em>"Built an AI cold email generator using FastAPI + Streamlit + Claude API."</em>
+                    <em>"Built an AI cold email generator using Streamlit + Claude API."</em>
                     Tag your stack — founders and CTOs are watching.
                 </div>
                 """, unsafe_allow_html=True)
 
-            except requests.exceptions.ConnectionError:
-                st.error("Cannot connect to the backend. Make sure the FastAPI server is running.")
+            except json.JSONDecodeError:
+                st.error("Failed to parse AI response. Please try again.")
+            except anthropic.AuthenticationError:
+                st.error("Invalid API key. Check your Streamlit secrets.")
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
 
